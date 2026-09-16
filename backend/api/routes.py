@@ -224,7 +224,7 @@ async def query_image(
         raise HTTPException(status_code=500, detail=f"Failed to load image: {e}")
 
     # Delegate to Orchestrator
-    orchestrator = QueryOrchestrator()
+    orchestrator = QueryOrchestrator(settings)
     internal_result = orchestrator.execute(request, rs_data)
     
     # Convert canonical AnalysisResult to API schema

@@ -91,13 +91,18 @@ def sample_temporal_pair(sample_rs_data_object: RSDataObject) -> tuple[RSDataObj
 @pytest.fixture
 def test_settings() -> Settings:
     """Create test settings with default (mock) backend."""
-    return Settings()
+    settings = Settings()
+    settings.model.backend_type = "MOCK"
+    return settings
 
 
 @pytest.fixture
 def test_app(test_settings: Settings):
     """Create test FastAPI app."""
-    return create_app(settings=test_settings)
+    from backend.core.config import get_settings
+    app = create_app(settings=test_settings)
+    app.dependency_overrides[get_settings] = lambda: test_settings
+    return app
 
 
 @pytest_asyncio.fixture

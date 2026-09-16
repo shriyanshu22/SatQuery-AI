@@ -59,6 +59,10 @@ def test_qwen_vlm_lazy_loading(mock_transformers):
     info = vlm.get_model_info()
     assert info.name == "Qwen/Qwen2.5-VL-3B-Instruct"
     
+    # Explicit load
+    vlm.load()
+    assert vlm.is_loaded()
+    
     # Trigger load by calling predict
     image = np.zeros((100, 100, 3), dtype=np.uint8)
     result = vlm.predict(image, "What is this?")
@@ -67,9 +71,14 @@ def test_qwen_vlm_lazy_loading(mock_transformers):
     assert vlm._model is not None
     assert vlm._processor is not None
     
-    # Check if from_pretrained was called correctly
+    # Check if from_pretrained was called correctly (only once due to idempotent load)
     mock_transformers["model"].from_pretrained.assert_called_once()
     mock_transformers["processor"].from_pretrained.assert_called_once_with("Qwen/Qwen2.5-VL-3B-Instruct")
+    
+    # Unload
+    vlm.unload()
+    assert not vlm.is_loaded()
+    assert vlm._model is None
 
 
 def test_qwen_vlm_predict(mock_transformers):
@@ -81,10 +90,17 @@ def test_qwen_vlm_predict(mock_transformers):
     
     assert isinstance(result, VLMResult)
     assert result.answer == "Mocked response text"
-    assert result.confidence.value == 0.8
-    assert result.confidence.source == "qwen_vl"
+    
+    # Confidence should be honestly unavailable
+    assert result.confidence.value is None
+    assert result.confidence.source == "unavailable"
+    assert "calibrated" in result.confidence.method or "calibrated" in result.confidence.method.lower()
+    
     assert len(result.evidence) == 1
     assert result.evidence[0].band_count == 3
+    
+    # Trace/timing should be present
+    assert "inference_duration_ms" in result.raw_output
 
 
 def test_qwen_vlm_missing_transformers():
