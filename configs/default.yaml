@@ -1,0 +1,49 @@
+server:
+  host: "0.0.0.0"
+  port: 8000
+  debug: true
+  log_level: "INFO"
+
+models:
+  backend: "mock"
+  vlm_model: "qwen2-vl-2b"
+  device: "cpu"
+  cache_dir: "./data/models"
+  timeout_seconds: 60
+
+preprocessing:
+  max_image_size_mb: 50
+  allowed_extensions:
+    - "tif"
+    - "tiff"
+    - "png"
+    - "jpg"
+    - "jpeg"
+  default_tile_size: 512
+  default_bands:
+    - 1
+    - 2
+    - 3
+
+upload:
+  max_size_mb: 100
+  allowed_extensions:
+    - "tif"
+    - "tiff"
+    - "png"
+    - "jpg"
+    - "jpeg"
+  upload_dir: "./outputs/uploads"
+
+demo:
+  enabled: true
+  data_dir: "./data/demo"
+  cached_outputs_dir: "./data/demo/cached"
+
+evaluation:
+  results_dir: "./outputs/eval_results"
+  datasets_dir: "./data/benchmarks"
+
+security:
+  max_filename_length: 255
+  rate_limit_rpm: 60
