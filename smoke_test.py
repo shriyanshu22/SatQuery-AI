@@ -1,43 +1,49 @@
-import os
-import torch
 import time
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
+import torch
+import numpy as np
+from PIL import Image
+from backend.models.qwen_vlm import QwenVLM
 
-# Suppress symlink warning
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
-
-print("Starting smoke test for Qwen2.5-VL-3B-Instruct...")
-model_id = "Qwen/Qwen2.5-VL-3B-Instruct"
-
-print(f"CUDA Available: {torch.cuda.is_available()}")
-if torch.cuda.is_available():
-    print(f"GPU: {torch.cuda.get_device_name(0)}")
-
-# Configure INT4 quantization
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_quant_type="nf4"
-)
-
-try:
-    start_time = time.time()
-    print("Loading processor...")
-    processor = AutoProcessor.from_pretrained(model_id)
-    
-    print("Loading model in INT4...")
-    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        model_id,
-        device_map="auto",
-        quantization_config=quantization_config
-    )
-    load_time = time.time() - start_time
-    
-    print(f"Model loaded successfully in {load_time:.2f} seconds.")
-    
+def run_smoke_test():
+    print(f"CUDA available: {torch.cuda.is_available()}")
     if torch.cuda.is_available():
-        memory_allocated = torch.cuda.memory_allocated() / (1024 ** 3)
-        print(f"VRAM Allocated: {memory_allocated:.2f} GB")
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
         
-except Exception as e:
-    print(f"Model loading failed: {e}")
+    print("\n--- Loading Image ---")
+    image_path = "data/demo/image.jpg"
+    try:
+        pil_image = Image.open(image_path).convert("RGB")
+        image_np = np.array(pil_image)
+        print(f"Image loaded: {image_path}, shape: {image_np.shape}, dtype: {image_np.dtype}")
+    except Exception as e:
+        print(f"Failed to load image: {e}")
+        return
+
+    print("\n--- Initializing VLM ---")
+    vlm = QwenVLM(model_id="Qwen/Qwen2.5-VL-3B-Instruct")
+    
+    print("\n--- Running Inference ---")
+    prompt = "What objects or land-cover features are visible in this image?"
+    
+    start_time = time.time()
+    try:
+        result = vlm.predict(image=image_np, prompt=prompt, max_tokens=128)
+        end_time = time.time()
+        
+        print("\n=== INFERENCE RESULT ===")
+        print(result.answer)
+        print("========================")
+        print(f"Latency: {end_time - start_time:.2f} seconds")
+        
+        if torch.cuda.is_available():
+            peak_memory = torch.cuda.max_memory_allocated(0) / (1024 ** 3)
+            print(f"Peak VRAM used: {peak_memory:.2f} GB")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"\nInference failed: {e}")
+
+if __name__ == "__main__":
+    run_smoke_test()
