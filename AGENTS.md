@@ -3,7 +3,7 @@
 **Project Context**: This project is for Smart India Hackathon 2026 (SIH26167), built by first-year engineering students.
 
 ## ABSOLUTE RULES
-1. **NO GIT**: Do NOT initialize Git, create repos, push, or connect to GitHub.
+
 2. **NO FRONTEND**: Do NOT implement frontend code. We build the backend ONLY.
 3. **NO FABRICATION**: Do NOT fabricate model outputs, confidence, evidence, metadata, or successful execution. If confidence is unavailable, value=None and source="unavailable" with an explanation.
 4. **NO HIDDEN THOUGHTS**: Do NOT expose chain-of-thought in execution traces. Traces must contain only observable system actions.

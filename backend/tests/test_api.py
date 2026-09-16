@@ -256,10 +256,13 @@ class TestUploadEndpoint:
 class TestDemoEndpoint:
     """Tests for demo mode (routes not yet implemented)."""
 
-    async def test_demo_samples_returns_404_when_unimplemented(self, test_client: AsyncClient) -> None:
-        """GET /demo/samples should 404 until the route is wired up."""
+    async def test_demo_samples_returns_catalog(self, test_client: AsyncClient) -> None:
+        """GET /demo/samples should return a 200 OK with the demo catalog."""
         response = await test_client.get("/demo/samples")
-        assert response.status_code in (404, 405)
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) > 0
 
     async def test_demo_query_returns_result(self, test_client: AsyncClient) -> None:
         pass  # TODO: implement after /demo route exists

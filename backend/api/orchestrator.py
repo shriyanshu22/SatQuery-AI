@@ -24,11 +24,14 @@ from backend.core.logging import get_logger
 logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
-# Module-level singleton for the heavy real VLM model.
+# Module-level singletons for heavy real models.
 # Loaded once on first REAL request, reused for the process lifetime.
 # ---------------------------------------------------------------------------
 _real_vlm_instance: Any = None
 _real_vlm_lock = threading.Lock()
+
+_real_grounding_instance: Any = None
+_real_grounding_lock = threading.Lock()
 
 
 def _get_real_vlm() -> Any:
@@ -53,6 +56,30 @@ def _get_real_vlm() -> Any:
         instance.load()
         _real_vlm_instance = instance
         return _real_vlm_instance
+
+
+def _get_real_grounding() -> Any:
+    """Return the singleton GroundingDINOModel instance, loading it on first call.
+
+    Thread-safe via a module-level lock so concurrent requests don't
+    trigger duplicate model loads.
+    """
+    global _real_grounding_instance
+    if _real_grounding_instance is not None:
+        return _real_grounding_instance
+
+    with _real_grounding_lock:
+        # Double-checked locking
+        if _real_grounding_instance is not None:
+            return _real_grounding_instance
+
+        from backend.models.grounding_dino import GroundingDINOModel
+
+        logger.info("Initialising singleton GroundingDINOModel for REAL backend...")
+        instance = GroundingDINOModel()
+        instance.load()
+        _real_grounding_instance = instance
+        return _real_grounding_instance
 
 
 class QueryOrchestrator:
@@ -105,7 +132,14 @@ class QueryOrchestrator:
         # 3. Single-image: Grounding
         if intent == QueryIntent.GROUNDING:
             adapter = GroundingAdapter()
-            model = MockGroundingModel()
+            
+            if backend == "REAL":
+                logger.info("Using REAL Grounding DINO backend for grounding.")
+                model = _get_real_grounding()
+            else:
+                logger.info(f"Using MOCK Grounding backend (backend_type={backend}).")
+                model = MockGroundingModel()
+
             service = GroundingService(model, adapter)
             if hasattr(service, "locate_objects"):
                 return service.locate_objects(primary_image, request.query)
