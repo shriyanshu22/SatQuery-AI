@@ -21,10 +21,14 @@ class DemoQueryRequest(BaseModel):
 
 
 class ConfidenceSchema(BaseModel):
-    value: float | None
-    source: str
-    method: str
-    calibrated: bool
+    value: float | None = None
+    source: str = "unavailable"
+    method: str = "none"
+    calibrated: bool = False
+    # Frontend compatibility
+    score: float | None = None
+    status: str = "available"
+    explanation: str | None = None
 
 
 class EvidenceSchema(BaseModel):
@@ -35,9 +39,13 @@ class EvidenceSchema(BaseModel):
 class ExecutionStepSchema(BaseModel):
     step_number: int
     action: str
-    status: Literal["completed", "failed", "skipped"]
-    duration_ms: float | None
-    observable_output: str | None
+    status: Literal["completed", "failed", "skipped", "pending", "active", "done"]
+    duration_ms: float | None = None
+    observable_output: str | None = None
+    # Frontend compatibility
+    id: str | None = None
+    label: str | None = None
+    detail: str | None = None
 
 
 class AnalysisResultSchema(BaseModel):
@@ -46,6 +54,10 @@ class AnalysisResultSchema(BaseModel):
     evidence: list[EvidenceSchema]
     execution_trace: list[ExecutionStepSchema]
     metadata: dict[str, Any]
+    id: str | None = None
+    task: str | None = None
+    warnings: list[str] = []
+    errors: list[str] = []
 
     @classmethod
     def from_internal(cls, internal_result: "backend.core.types.AnalysisResult") -> "AnalysisResultSchema":
@@ -56,7 +68,10 @@ class AnalysisResultSchema(BaseModel):
             value=conf.value if conf else None,
             source=conf.source if conf else "unavailable",
             method=conf.method if conf else "none",
-            calibrated=conf.calibrated if conf else False
+            calibrated=conf.calibrated if conf else False,
+            score=conf.value if conf else None,
+            status="available" if conf and conf.value is not None else "unavailable",
+            explanation=f"Derived from {conf.source} via {conf.method}" if conf else None,
         ) if conf else None
 
         evidence_schemas = []
@@ -71,23 +86,38 @@ class AnalysisResultSchema(BaseModel):
                 action=step.action,
                 status=step.status,
                 duration_ms=step.duration_ms,
-                observable_output=step.observable_output
+                observable_output=step.observable_output,
+                id=f"step-{step.step_number}",
+                label=step.action,
+                detail=step.observable_output,
             ) for step in internal_result.execution_trace
         ]
+
+        task_name = internal_result.intent.value.lower() if hasattr(internal_result, 'intent') and internal_result.intent else "vqa"
 
         return cls(
             answer=internal_result.answer,
             confidence=confidence_schema,
             evidence=evidence_schemas,
             execution_trace=trace_schemas,
-            metadata=internal_result.metadata
+            metadata=internal_result.metadata,
+            task=task_name,
+            warnings=getattr(internal_result, "warnings", []),
+            errors=getattr(internal_result, "errors", []),
         )
 
 
 class QueryResponse(BaseModel):
     task_id: str
-    status: Literal["completed", "processing", "failed"]
+    status: Literal["completed", "processing", "pending", "failed"]
     result: AnalysisResultSchema | None = None
+
+
+class TaskStatusResponse(BaseModel):
+    task_id: str
+    status: Literal["completed", "processing", "pending", "failed"]
+    progress: float | None = 100.0
+    message: str | None = None
 
 
 class CapabilityInfo(BaseModel):
@@ -108,10 +138,17 @@ class HealthResponse(BaseModel):
 # Upload / Validation Schemas
 # ---------------------------------------------------------------------------
 
+class ValidationIssueSchema(BaseModel):
+    id: str
+    message: str
+    severity: Literal["warning", "error"]
+
+
 class ValidationResultSchema(BaseModel):
-    status: Literal["valid", "valid_with_warnings", "invalid"]
+    status: Literal["valid", "valid_with_warnings", "warning", "invalid"]
     warnings: list[str] = []
     errors: list[str] = []
+    issues: list[ValidationIssueSchema] = []
 
 
 class ImageMetadataSchema(BaseModel):
@@ -143,8 +180,35 @@ class ErrorResponse(BaseModel):
     error_code: str
 
 
-class DemoSampleInfo(BaseModel):
-    name: str
+# ---------------------------------------------------------------------------
+# Demo & Report Schemas
+# ---------------------------------------------------------------------------
+
+class DemoImageSchema(BaseModel):
+    id: str
+    filename: str
+    url: str
+    modality: str
+    dimensions: dict[str, int]
+    acquisitionDate: str | None = None
+    sensor: str | None = None
+    crs: str | None = None
+
+
+class DemoSampleSchema(BaseModel):
+    id: str
+    title: str
+    tagline: str
     description: str
+    targetWorkflow: str
+    images: list[DemoImageSchema]
+    suggestedQueries: list[str]
+    defaultQuery: str
+
+
+class ReportResponse(BaseModel):
+    analysis_id: str
     format: str
-    capabilities: list[str]
+    filename: str
+    download_url: str
+

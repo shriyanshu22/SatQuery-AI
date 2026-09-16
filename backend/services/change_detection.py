@@ -97,10 +97,11 @@ class ChangeDetectionService:
         regions = []
         if change_mask.sum() > 0:
             regions.append(ChangedRegion(
-                centroid=(100, 100),
+                centroid=(100.0, 100.0),
                 area=500.0,
-                bbox=BoundingBox(xmin=50, ymin=50, xmax=150, ymax=150, label="change")
+                bbox=(50.0, 50.0, 150.0, 150.0)
             ))
+
         return regions
 
     def _generate_change_map_evidence(self, change_mask: np.ndarray, regions: List[ChangedRegion]) -> ChangeMapEvidence:

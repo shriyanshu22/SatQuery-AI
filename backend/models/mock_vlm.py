@@ -30,6 +30,7 @@ class MockVLM(BaseModel, VLMProtocol):
 
     def __init__(self, name: str = "mock-vlm") -> None:
         super().__init__(name)
+        self.load()
 
     def load(self) -> None:
         logger.info(f"Loading MockVLM {self.name}")
@@ -80,6 +81,7 @@ class MockGroundingModel(BaseModel, GroundingProtocol):
 
     def __init__(self, name: str = "mock-grounding") -> None:
         super().__init__(name)
+        self.load()
 
     def load(self) -> None:
         logger.info(f"Loading MockGroundingModel {self.name}")

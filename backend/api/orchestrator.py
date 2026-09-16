@@ -66,41 +66,64 @@ class QueryOrchestrator:
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
 
-    def execute(self, request: QueryRequest, image: RSDataObject) -> AnalysisResult:
+    def execute(self, request: QueryRequest, image: RSDataObject | list[RSDataObject]) -> AnalysisResult:
         """Route the query, instantiate the appropriate service and model,
         and execute the analysis.
 
         Args:
             request: The incoming query request.
-            image: The loaded remote-sensing data object.
+            image: A single RSDataObject or list of RSDataObjects.
 
         Returns:
             Canonical AnalysisResult.
         """
+        images: list[RSDataObject] = image if isinstance(image, list) else [image]
+        primary_image = images[0]
         intent = route_query(request)
         backend = self.settings.model.backend_type.upper()
 
+        logger.info(f"Orchestrating query with intent={intent}, backend={backend}, num_images={len(images)}")
+
+        # 1. Multi-image: Cross-Modal Analysis (Optical + SAR)
+        if intent == QueryIntent.CROSS_MODAL and len(images) >= 2:
+            from backend.services.cross_modal import CrossModalAnalysisService
+            logger.info("Executing CrossModalAnalysisService for multi-sensor query.")
+            # Find optical and SAR if possible, otherwise use images[0] and images[1]
+            opt_img = next((img for img in images if getattr(img.metadata, 'modality', '').lower() == 'optical'), images[0])
+            sar_img = next((img for img in images if getattr(img.metadata, 'modality', '').lower() == 'sar'), images[1])
+            service = CrossModalAnalysisService(vlm_model=MockVLM(), sar_analyzer=None)
+            return service.analyze(optical_image=opt_img, sar_image=sar_img, query=request.query)
+
+        # 2. Multi-image: Bi-temporal Change Detection
+        if intent == QueryIntent.CHANGE_DETECTION and len(images) >= 2:
+            from backend.services.change_detection import ChangeDetectionService
+            logger.info("Executing ChangeDetectionService for bi-temporal query.")
+            adapter = VLMAdapter((1024, 1024))
+            service = ChangeDetectionService(change_model=None, vlm_model=MockVLM(), adapter=adapter)
+            return service.detect_changes(image_before=images[0], image_after=images[1], query=request.query)
+
+        # 3. Single-image: Grounding
         if intent == QueryIntent.GROUNDING:
             adapter = GroundingAdapter()
             model = MockGroundingModel()
             service = GroundingService(model, adapter)
-            # Handle possible naming mismatch (locate_objects vs ground_query)
             if hasattr(service, "locate_objects"):
-                return service.locate_objects(image, request.query)
+                return service.locate_objects(primary_image, request.query)
             elif hasattr(service, "ground_query"):
-                return service.ground_query(image, request.query)  # fallback if name differs
+                return service.ground_query(primary_image, request.query)
             else:
                 raise AttributeError("GroundingService missing execution method.")
+
+        # 4. Default / Single-image: Visual Question Answering
+        adapter = VLMAdapter((1024, 1024))
+
+        if backend == "REAL":
+            logger.info("Using REAL Qwen VLM backend for VQA.")
+            model = _get_real_vlm()
         else:
-            # Default to VQA
-            adapter = VLMAdapter((1024, 1024))
+            logger.info(f"Using MOCK VLM backend for VQA (backend_type={backend}).")
+            model = MockVLM()
 
-            if backend == "REAL":
-                logger.info("Using REAL Qwen VLM backend for VQA.")
-                model = _get_real_vlm()
-            else:
-                logger.info(f"Using MOCK VLM backend for VQA (backend_type={backend}).")
-                model = MockVLM()
+        service = VQAService(model, adapter)
+        return service.answer_question(primary_image, request.query)
 
-            service = VQAService(model, adapter)
-            return service.answer_question(image, request.query)
