@@ -19,7 +19,7 @@ class ServerConfig(BaseModel):
     port: int = 8000
     workers: int = 1
     reload: bool = False
-    cors_origins: list[str] = ["*"]
+    cors_origins: list[str] = ["http://localhost:5173"]
 
 
 class ModelConfig(BaseModel):

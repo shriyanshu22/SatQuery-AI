@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces — deep petrol/teal-navy, evokes optics glass and open water
+     seen from orbit. Distinctive against the generic cream-SaaS or
+     pure-black console look. */
+  --color-base: #0f2229;
+  --color-panel: #16303a;
+  --color-panel-raised: #1c3944;
+  --color-border: #2b4b56;
+  --color-border-strong: #3d6373;
+
+  /* Text — warm off-white, never stark */
+  --color-text-primary: #f2ede4;
+  --color-text-secondary: #b9cbd1;
+  --color-text-muted: #7e97a0;
+
+  /* Accent — warm terracotta glows against the deep teal for strong,
+     confident contrast; a soft sand tone backs it for secondary data use */
+  --color-accent: #e08a5b;
+  --color-accent-strong: #ec9d6f;
+  --color-accent-dim: #3a2a20;
+  --color-data: #e3c581;
+  --color-data-strong: #edd49a;
+
+  /* Status */
+  --color-success: #7fc09a;
+  --color-success-dim: #1c332a;
+  --color-warning: #e3b95f;
+  --color-warning-dim: #3a3020;
+  --color-error: #e08272;
+  --color-error-dim: #3a2622;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(
+      ellipse 70% 50% at 50% -5%,
+      rgba(224, 138, 91, 0.08),
+      transparent 60%
+    );
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: var(--color-accent-dim);
+    color: var(--color-text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+}
+
+@layer utilities {
+  .font-mono-tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}

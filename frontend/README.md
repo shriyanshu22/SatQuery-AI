@@ -1,28 +1,72 @@
-# Frontend
-The frontend for SatQuery AI is NOT implemented in this repository.
+# GeoLens — Frontend
 
-This repository focuses exclusively on the backend logic, model orchestration, and APIs for multimodal remote-sensing image analysis. The frontend will be developed independently by a separate team member.
+Evidence-first, agentic interface for multimodal remote-sensing image analysis.
+Built for Smart India Hackathon 2026, Problem Statement SIH26167.
 
-## Backend-Frontend Contract
-The frontend MUST communicate with the backend exclusively through the documented REST API. For details on the API structure and contracts, please reference:
-- [docs/API_CONTRACT.md](../docs/API_CONTRACT.md)
-- [docs/FRONTEND_CONTRACT.md](../docs/FRONTEND_CONTRACT.md)
+This is **Part 1 of 4**: foundation, architecture, and core UI. It is a fully
+independent frontend client — it does not import backend code, invoke models,
+or reproduce any analysis logic. It talks to a backend only through the
+`SatQueryApiClient` interface in `src/api/client.ts`.
 
-### Key API Endpoints
-- `POST /api/v1/query`: Submit a text query along with an optional image or region of interest.
-- `POST /api/v1/upload`: Upload remote sensing images for analysis.
-- `GET /api/v1/status`: Check system status and available models.
-- `GET /api/v1/demo`: Fetch demo queries and data.
+## What's implemented in this part
 
-## Backend Capability
-The backend is fully functional independently. It can be interacted with via:
-- The REST API using tools like `curl` or Postman.
-- The OpenAPI documentation interface (Swagger UI) at `/docs`.
-- Included CLI scripts in `scripts/`.
-- Automated test suites in `backend/tests/`.
+- Project scaffold: Vite + React + TypeScript + Tailwind CSS v4
+- Application shell: header (branding, backend status, demo mode indicator),
+  asymmetric two-column workspace (imagery + query on the left, status +
+  help on the right)
+- Upload flow: drag-and-drop + file picker, per-image state machine
+  (uploading → processing → ready / failed), metadata display, validation
+  display (valid / warning / invalid) sourced entirely from the API layer
+- Query composer: natural-language input with example prompts, no forced
+  model/pipeline selection
+- Analysis status: execution trace panel, expandable technical evidence
+  section (collapsed by default — the default experience stays simple)
+- Full component state coverage: empty, loading, success, warning, error
+  for every major surface
+- Mock API layer (`src/api/mock/`) so the app is fully demoable with zero
+  backend — swap to a real backend by implementing `SatQueryApiClient` in
+  `src/api/real/` and flipping `VITE_API_MODE=real`. See `src/api/README.md`.
 
-## Getting Started for Frontend Developers
-1. Clone this repository to run the backend locally.
-2. Follow the `README.md` instructions to install backend dependencies and start the local server.
-3. Access the OpenAPI specifications at `http://localhost:8000/docs` to understand the available endpoints, request/response formats, and data schemas.
-4. Build your frontend to interface with these endpoints, ensuring proper handling of multipart/form-data for image uploads and JSON for queries.
+## Landing page
+
+`src/pages/Landing.tsx` is the entry screen: logo lockup, headline, and a
+choice between two ways to proceed — **Researcher** (full upload + analysis
+flow) and **Explore** (sample-scene demo mode).
+
+`src/Root.tsx` is the gate that connects it to the main workspace: it holds
+which role was picked and renders `Landing` until one is chosen, then renders
+`App` with that role. `main.tsx` mounts `Root` instead of `App` directly.
+`App` shows the picked mode as a badge in the header (`Header.tsx`), next to
+a "Change mode" link that clears the selection and returns to the landing
+page.
+
+## Not yet built (Parts 2–4)
+
+Change-detection maps, grounding/bounding-box overlays, SAR/optical
+comparison views, the fuller evidence viewer, report generation, and real
+backend wiring — the folders for these already exist under
+`src/features/` so later parts extend rather than restructure.
+
+## Running it
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Runs entirely on the mock API by default — no backend required to see the
+full upload → ask → analyze flow.
+
+## Design system
+
+- Base: deep petrol teal-navy (`#0f2229`), evoking optics glass and ocean
+  seen from orbit — panels lift with `#16303a` / `#1c3944` and soft
+  shadows, not hairline borders
+- Accent: warm terracotta (`#e08a5b`), glowing with confident contrast
+  against the deep teal; secondary data color is a warm sand
+  (`#e3c581`) — used for real technical values, never for cheerful UI
+  chrome
+- Type: IBM Plex Sans for UI, IBM Plex Mono reserved for genuinely
+  technical values (file sizes, CRS, coordinates, evidence numbers)
+- Status is always icon + color + text, never color alone
