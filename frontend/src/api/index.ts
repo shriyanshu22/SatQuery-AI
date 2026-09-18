@@ -15,49 +15,31 @@ export const apiClient: SatQueryApiClient = {
   },
 
   async uploadImage(file, onProgress) {
-    if (cachedBackendOnline) {
-      try {
-        return await realClient.uploadImage(file, onProgress)
-      } catch (err) {
-        console.warn('[GeoLens] Real upload failed, falling back to local simulation:', err)
-        return mockClient.uploadImage(file, onProgress)
-      }
+    if (!cachedBackendOnline) {
+      throw new Error('Backend is offline. Cannot upload image in live mode.')
     }
-    return mockClient.uploadImage(file, onProgress)
+    return realClient.uploadImage(file, onProgress)
   },
 
   async submitQuery(query) {
-    if (cachedBackendOnline) {
-      try {
-        return await realClient.submitQuery(query)
-      } catch (err) {
-        console.warn('[GeoLens] Real query failed, falling back to local simulation:', err)
-        return mockClient.submitQuery(query)
-      }
+    if (!cachedBackendOnline) {
+      throw new Error('Backend is offline. Cannot submit query in live mode.')
     }
-    return mockClient.submitQuery(query)
+    return realClient.submitQuery(query)
   },
 
   async getAnalysis(analysisId) {
-    if (cachedBackendOnline) {
-      try {
-        return await realClient.getAnalysis(analysisId)
-      } catch {
-        return mockClient.getAnalysis(analysisId)
-      }
+    if (!cachedBackendOnline) {
+      throw new Error('Backend is offline. Cannot fetch analysis.')
     }
-    return mockClient.getAnalysis(analysisId)
+    return realClient.getAnalysis(analysisId)
   },
 
   async downloadReport(analysisId) {
-    if (cachedBackendOnline) {
-      try {
-        return await realClient.downloadReport(analysisId)
-      } catch {
-        return mockClient.downloadReport(analysisId)
-      }
+    if (!cachedBackendOnline) {
+      throw new Error('Backend is offline. Cannot download report.')
     }
-    return mockClient.downloadReport(analysisId)
+    return realClient.downloadReport(analysisId)
   },
 }
 

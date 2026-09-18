@@ -69,12 +69,13 @@ export function useImageUpload() {
             prev.map((img) => (img.id === id ? { ...img, progress: pct } : img)),
           )
         })
-        .then(({ metadata, validation, remotePreviewUrl }) => {
+        .then(({ imageId: backendImageId, metadata, validation, remotePreviewUrl }) => {
           setImages((prev) => {
             const next = prev.map((img) =>
               img.id === id
                 ? {
                     ...img,
+                    id: backendImageId || img.id,
                     stage: 'ready' as const,
                     progress: 100,
                     metadata,

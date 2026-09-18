@@ -12,7 +12,7 @@ export interface SatQueryApiClient {
   uploadImage(
     file: File,
     onProgress?: (pct: number) => void,
-  ): Promise<{ metadata: ImageMetadata; validation: ImageValidation; remotePreviewUrl?: string }>
+  ): Promise<{ imageId?: string; metadata: ImageMetadata; validation: ImageValidation; remotePreviewUrl?: string }>
 
   submitQuery(query: Pick<AnalysisQuery, 'prompt' | 'imageIds'>): Promise<AnalysisResult>
 

@@ -96,7 +96,9 @@ export const realClient: SatQueryApiClient = {
                 : `${baseUrl}${data.preview_url}`
             }
 
-            resolve({ metadata, validation, remotePreviewUrl })
+            const imageId = data.image_id
+
+            resolve({ imageId, metadata, validation, remotePreviewUrl })
           } catch (e) {
             reject(new Error(`Failed to parse backend upload response: ${e}`))
           }
@@ -114,6 +116,7 @@ export const realClient: SatQueryApiClient = {
                   const data = JSON.parse(fallbackXhr.responseText)
                   // reuse parsing
                   resolve({
+                    imageId: data.image_id,
                     metadata: {
                       filename: file.name,
                       fileType: file.type || 'image/tiff',
